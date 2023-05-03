@@ -2,6 +2,8 @@ const multer = require("multer");
 const uniqid = require("uniqid");
 //
 const User = require("../models/User");
+const ErrorResponse = require("../utils/errorResponse");
+const sharp = require("sharp");
 
 const id = uniqid();
 
@@ -36,8 +38,9 @@ const upload = multer({
 // @desc      create user
 // @route     POST /api/v1/user
 // @access    public
-exports.addUser = async (req, res) => {
+exports.addUser = async (req, res, next) => {
   try {
+    const allowed_file_size = 0.2;
     const singleImage = upload.single("image");
     singleImage(req, res, async function (err) {
       const url = req.protocol + "://" + req.get("host");
@@ -50,10 +53,21 @@ exports.addUser = async (req, res) => {
       //   userType: req?.body?.userType,
       //   userImage: url + "/images/" + req?.file?.filename,
       // });
+      // console.log(req.body);
+      // console.log(req.file);
+      if (req?.file?.size / (1024 * 1024) > allowed_file_size) {
+        return res.status(401).json({
+          message: "image file too large",
+        });
+
+        // return next(new ErrorResponse("image file too large", 401));
+      }
+
       const user = await User.create({
         userDisplayName: req?.body?.userDisplayName,
         username: req?.body?.username,
         email: req?.body?.email,
+        password: req?.body?.password,
         authType: req?.body?.authType,
         authKey: req?.body?.authKey,
         userType: req?.body?.userType,
@@ -108,7 +122,7 @@ exports.addUser = async (req, res) => {
 exports.getUser = async (req, res) => {
   try {
     const { userId } = req.query;
-    const response = await User.findById(userId);
+    const response = await User.findById(userId).populate("userType");
     res.status(200).json({
       success: true,
       response,
@@ -150,11 +164,17 @@ exports.updateUser = async (req, res) => {
     const singleImage = upload.single("image");
     singleImage(req, res, async function (err) {
       const url = req.protocol + "://" + req.get("host");
+      if (req?.file?.size / (1024 * 1024) > allowed_file_size) {
+        return res.status(401).json({
+          message: "image file too large",
+        });
+      }
       const { user_id } = req.body;
       const user = await User.findByIdAndUpdate(user_id, {
         userDisplayName: req?.body?.userDisplayName,
         username: req?.body?.username,
         email: req?.body?.email,
+        password: req?.body?.password,
         authType: req?.body?.authType,
         authKey: req?.body?.authKey,
         userType: req?.body?.userType,
@@ -164,7 +184,7 @@ exports.updateUser = async (req, res) => {
         .save()
         .then((result) => {
           res.status(201).json({
-            message: "successfully added",
+            message: "successfully updated",
           });
         })
         .catch((err) => {
@@ -197,7 +217,7 @@ exports.updateUserField = async (req, res) => {
         .save()
         .then((result) => {
           res.status(201).json({
-            message: "successfully added",
+            message: "successfully updated",
           });
         })
         .catch((err) => {

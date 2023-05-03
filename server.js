@@ -25,10 +25,14 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // route files
+const auth = require("./routes/auth");
 const user = require("./routes/user");
+const userType = require("./routes/userType");
 
 // mount routers
-app.use("/api", user);
+app.use("/api/V1/auth", auth);
+app.use("/api/v1", user);
+app.use("/api/v1/user", userType);
 
 const PORT = 8000;
 app.listen(PORT, console.log(`port is running ${PORT}`));
